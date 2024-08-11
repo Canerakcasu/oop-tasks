@@ -1,118 +1,116 @@
-from fpdf import FPDF
+import numpy as np
+import random
+import os
 
-# Create instance of FPDF class
-pdf = FPDF()
+class Game2048:
+    def __init__(self, grid_size=4):
+        self.grid_size = grid_size
+        self.grid = np.zeros((grid_size, grid_size), dtype=int)
+        self.score = 0
+        self.game_over = False
+        self.add_new_tile()
+        self.add_new_tile()
 
-# Add a page
-pdf.add_page()
+    def add_new_tile(self):
+        empty_cells = [(i, j) for i in range(self.grid_size) for j in range(self.grid_size) if self.grid[i][j] == 0]
+        if empty_cells:
+            x, y = random.choice(empty_cells)
+            self.grid[x][y] = random.choice([2, 4])
+        else:
+            self.game_over = True
 
-# Set font
-pdf.set_font("Arial", size=12)
+    def move(self, direction):
+        if not self.game_over:
+            if direction == 'left':
+                self.move_left()
+            elif direction == 'right':
+                self.move_right()
+            elif direction == 'up':
+                self.move_up()
+            elif direction == 'down':
+                self.move_down()
+            else:
+                print("Invalid direction! Use 'left', 'right', 'up', or 'down'.")
+                return
 
-# Add content to the PDF
+            if not self.game_over:
+                self.add_new_tile()
+                os.system('cls' if os.name == 'nt' else 'clear')  # Clear the screen
+                self.display_grid()
+                if self.check_game_over():
+                    print("Game Over! No more moves left.")
+                    self.game_over = True
 
-# Title
-pdf.cell(200, 10, txt="Caner AKCASU - Resume", ln=True, align='C')
+    def move_left(self):
+        new_grid = np.zeros_like(self.grid)
+        for i in range(self.grid_size):
+            merged_row = self.slide_and_merge(self.grid[i])
+            new_grid[i, :] = merged_row
+        self.grid = new_grid
 
-# Contact Information
-contact_info = """Contact Information:
-Address: Wroclaw, 53-443 Poland
-Phone: +48 571 079 459
-Email: Canerlimited@gmail.com
-Website: https://bold.pro/my/caner-akcasu/281r
-"""
-pdf.multi_cell(0, 10, contact_info)
+    def move_right(self):
+        new_grid = np.zeros_like(self.grid)
+        for i in range(self.grid_size):
+            reversed_row = self.grid[i][::-1]
+            merged_row = self.slide_and_merge(reversed_row)
+            new_grid[i, :] = merged_row[::-1]
+        self.grid = new_grid
 
-# Objective
-objective = """Objective:
-I am a dedicated and hardworking individual currently studying Software Engineering at WSB Merito Wroclaw. I am seeking a part-time job in the internet industry or at the beginner level to further develop my skills and gain more experience.
-"""
-pdf.multi_cell(0, 10, objective)
+    def move_up(self):
+        self.grid = self.grid.T  # Transpose the grid
+        self.move_left()
+        self.grid = self.grid.T  # Transpose back to original orientation
 
-# Work History
-work_history = """Work History:
+    def move_down(self):
+        self.grid = self.grid.T  # Transpose the grid
+        self.move_right()
+        self.grid = self.grid.T  # Transpose back to original orientation
 
-Product Testing Specialist
-Cinno Poland · Part-time
-Apr 2024 - Present · 4 mos
-Wrocław, Dolnośląskie, Poland · On-site
+    def slide_and_merge(self, row):
+        new_row = [tile for tile in row if tile != 0]
+        for i in range(len(new_row) - 1):
+            if new_row[i] == new_row[i + 1]:
+                new_row[i] *= 2
+                new_row[i + 1] = 0
+                self.score += new_row[i]
+        new_row = [tile for tile in new_row if tile != 0] + [0] * (len(row) - len(new_row))
+        return new_row
 
-Product Testing and Repair:
-- Conducted manual and automated tests on Xiaomi products, including scooters, cellphones, and smart home devices.
-- Identified faulty or defective products, performed necessary repairs, and ensured they were suitable for reuse.
-- Reset IMEI and other codes on cellphones, updated software, and resolved motherboard issues to prepare devices for resale.
+    def check_game_over(self):
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                if self.grid[i][j] == 0:
+                    return False
+                if j < self.grid_size - 1 and self.grid[i][j] == self.grid[i][j + 1]:
+                    return False
+                if i < self.grid_size - 1 and self.grid[i][j] == self.grid[i + 1][j]:
+                    return False
+        return True
 
-Logistics and Distribution:
-- Coordinated logistics processes for repaired products across Europe.
-- Ensured timely and seamless delivery of products.
+    def display_grid(self):
+        print("Score:", self.score)
+        for row in self.grid:
+            print(" ".join("{:4}".format(tile) if tile != 0 else "    " for tile in row))
+        print()
 
-Quality Control:
-- Managed quality control processes to ensure high standards for all products.
-- Developed and improved test procedures and standards to continuously enhance processes.
+def main():
+    game = Game2048()
+    game.display_grid()
 
-Operator (Scanner)
-iMile Delivery (Shein), Bielany Wroclawskie
-Jan 2024 - Apr 2024
-...
-"""
-# Uzun metinler için multi_cell yerine cell kullanılabilir
-pdf.multi_cell(0, 10, work_history)
+    directions = {'left': 'left', 'right': 'right', 'up': 'up', 'down': 'down'}
 
-# Education
-education = """Education:
+    while not game.game_over:
+        move = input("Enter direction (left/right/up/down) or 'exit' to quit: ").lower()
+        
+        if move == 'exit':
+            break
+        
+        if move in directions:
+            game.move(move)
+        else:
+            print("Invalid direction! Use 'left', 'right', 'up', or 'down'.")
+    
+    print("Game Over! Your final score is:", game.score)
 
-Bachelor of Science: Computer Science
-Wroclaw University of Applied Informatics - Wroclaw, Poland
-May 2022 - May 2023
-
-Bachelor of Science: Software Engineering
-Uniwersytet WSB Merito - Wroclaw, Poland
-May 2023 - Current
-"""
-pdf.multi_cell(0, 10, education)
-
-# Skills
-skills = """Skills:
-
-- Machine Operation
-- Reading and Determining Measurements
-- Visual Inspection
-- Time Management Abilities
-- MS Office
-- Marketing
-- Data Analysis
-- Blockchain
-- Wordpress
-- Windows-IOS Systems
-"""
-pdf.multi_cell(0, 10, skills)
-
-# Languages
-languages = """Languages:
-
-- Turkish
-- English
-- Polish
-- Russian
-"""
-pdf.multi_cell(0, 10, languages)
-
-# Certifications
-certifications = """Certifications:
-
-- Digital Marketing (Google) - Sep 2020
-- Python Programming - Aug 2020
-"""
-pdf.multi_cell(0, 10, certifications)
-
-# References
-references = """References:
-Available upon request.
-"""
-pdf.multi_cell(0, 10, references)
-
-# Save the PDF
-output_path = "/mnt/data/Caner_AKCASU_Updated_Resume.pdf"
-pdf.output(output_path)
-
-print(f"PDF saved successfully at: {output_path}")
+if __name__ == "__main__":
+    main()
